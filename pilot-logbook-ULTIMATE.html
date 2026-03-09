@@ -225,6 +225,54 @@
         input[type="file"] { display: none; }
         .empty-state { text-align: center; padding: 50px 20px; color: #64748b; }
         
+        /* Airport Tab Styles */
+        .airport-tab {
+            padding: 10px 20px;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        
+        .airport-tab:hover {
+            color: #60a5fa;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .airport-tab.active {
+            color: #60a5fa;
+            border-bottom-color: #60a5fa;
+        }
+        
+        /* Rich Text Editor Styles */
+        [contenteditable]:focus {
+            outline: 2px solid #3b82f6;
+            outline-offset: 2px;
+        }
+        
+        [contenteditable] img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 6px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        [contenteditable] img:hover {
+            transform: scale(1.02);
+        }
+        
+        [contenteditable]:empty:before {
+            content: attr(placeholder);
+            color: #64748b;
+            white-space: pre-wrap;
+        }
+        
         @media (max-width: 768px) {
             .form-row, .form-row-3, .form-row-4 { grid-template-columns: 1fr; }
             .main-stats { grid-template-columns: repeat(2, 1fr); }
@@ -447,6 +495,17 @@
                                 <span class="time-separator">:</span>
                                 <input type="number" class="time-input" id="picSupvM" min="0" max="59" placeholder="분">
                             </div>
+                            <!-- ✅ 이착륙 체크박스 -->
+                            <div style="margin-top: 8px; display: flex; gap: 12px; font-size: 13px;">
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox" id="checkTakeoff" onchange="autoAssignRoles()" style="margin-right: 4px; cursor: pointer;">
+                                    <span>이륙 수행</span>
+                                </label>
+                                <label style="display: flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox" id="checkLanding" onchange="autoAssignRoles()" style="margin-right: 4px; cursor: pointer;">
+                                    <span>착륙 수행</span>
+                                </label>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label>CoPilot</label>
@@ -567,21 +626,63 @@
     <!-- Airport Management Modal -->
     <div id="airportModal" class="modal">
         <div class="modal-content">
-            <h2>✈️ 공항 일출일몰 관리</h2>
+            <h2>🛫 공항 일출일몰 관리</h2>
             <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">
-                DB에 없는 공항은 기본값(06:00~18:00)이 사용됩니다. 아래에서 공항을 추가/수정하세요.
+                총 <strong style="color: #60a5fa;">33개</strong> 공항 DB 내장 | DB에 없는 공항은 기본값(<strong>21:00~09:00 UTC</strong>) 사용
             </p>
             
             <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 15px; color: #60a5fa; margin-bottom: 10px;">📋 현재 등록된 공항</h3>
-                <div id="airportList" style="max-height: 300px; overflow-y: auto;"></div>
+                <h3 style="font-size: 15px; color: #34d399; margin-bottom: 10px;">✅ 내장 공항 (33개)</h3>
+                <div id="builtinAirportList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; margin-bottom: 15px;"></div>
             </div>
+            
+            <div style="margin-bottom: 20px;">
+                <h3 style="font-size: 15px; color: #fbbf24; margin-bottom: 10px;">➕ 사용자 추가 공항</h3>
+                <div id="customAirportList" style="margin-bottom: 10px;"></div>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #334155; margin: 20px 0;">
             
             <div style="margin-bottom: 15px;">
                 <h3 style="font-size: 15px; color: #34d399; margin-bottom: 10px;">➕ 새 공항 추가</h3>
                 <div class="form-group">
                     <label>ICAO 코드 (4글자) *</label>
-                    <input type="text" id="newAirportIcao" placeholder="RKSI" maxlength="4" style="text-transform: uppercase;">
+                    <input type="text" id="newAirportIcao" placeholder="LFPG" maxlength="4" style="text-transform: uppercase;">
+                </div>
+                <div class="form-group">
+                    <label>공항 이름 (선택)</label>
+                    <input type="text" id="newAirportName" placeholder="Paris Charles de Gaulle">
+                </div>
+                <div class="form-group">
+                    <label>타임존 UTC Offset (선택)</label>
+                    <select id="newAirportTimezone">
+                        <option value="">선택 안함 (기본: UTC+0)</option>
+                        <option value="-12">UTC-12</option>
+                        <option value="-11">UTC-11</option>
+                        <option value="-10">UTC-10</option>
+                        <option value="-9">UTC-9</option>
+                        <option value="-8">UTC-8</option>
+                        <option value="-7">UTC-7</option>
+                        <option value="-6">UTC-6</option>
+                        <option value="-5">UTC-5</option>
+                        <option value="-4">UTC-4</option>
+                        <option value="-3">UTC-3</option>
+                        <option value="-2">UTC-2</option>
+                        <option value="-1">UTC-1</option>
+                        <option value="0">UTC+0</option>
+                        <option value="1">UTC+1</option>
+                        <option value="2">UTC+2</option>
+                        <option value="3">UTC+3</option>
+                        <option value="4">UTC+4</option>
+                        <option value="5">UTC+5</option>
+                        <option value="6">UTC+6</option>
+                        <option value="7">UTC+7</option>
+                        <option value="8">UTC+8</option>
+                        <option value="9" selected>UTC+9</option>
+                        <option value="10">UTC+10</option>
+                        <option value="11">UTC+11</option>
+                        <option value="12">UTC+12</option>
+                    </select>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
@@ -604,41 +705,17 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>일출 시간 (HH:MM)</label>
+                        <label>일출 시간 (로컬 HH:MM)</label>
                         <input type="text" id="newAirportSunrise" placeholder="06:30">
                     </div>
                     <div class="form-group">
-                        <label>일몰 시간 (HH:MM)</label>
+                        <label>일몰 시간 (로컬 HH:MM)</label>
                         <input type="text" id="newAirportSunset" placeholder="18:30">
                     </div>
                 </div>
                 <button class="btn-primary" onclick="addCustomAirport()">💾 저장</button>
             </div>
             
-            <button class="btn-secondary" onclick="closeAirportModal()" style="margin-top: 10px;">닫기</button>
-        </div>
-    </div>
-
-    <!-- Airport Management Modal -->
-    <div id="airportModal" class="modal">
-        <div class="modal-content">
-            <h2>🛫 공항 일출일몰 관리</h2>
-            <p style="font-size: 13px; color: #94a3b8; margin-bottom: 15px;">
-                총 <strong style="color: #60a5fa;">36개</strong> 공항 DB 내장 | 새 공항 추가 가능
-            </p>
-            
-            <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 15px; color: #34d399; margin-bottom: 10px;">✅ 내장 공항 (36개)</h3>
-                <div id="builtinAirportList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; margin-bottom: 15px;">
-                </div>
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <h3 style="font-size: 15px; color: #fbbf24; margin-bottom: 10px;">➕ 사용자 추가 공항</h3>
-                <div id="customAirportList" style="margin-bottom: 10px;"></div>
-            </div>
-            
-            <button class="btn-primary" onclick="showAddAirportForm()">➕ 새 공항 추가</button>
             <button class="btn-secondary" onclick="closeAirportModal()" style="margin-top: 10px;">닫기</button>
         </div>
     </div>
@@ -670,13 +747,62 @@
         </div>
     </div>
 
+    <!-- Airport Detail Modal (내장/사용자 공항 상세보기) -->
+    <div id="airportDetailModal" class="modal">
+        <div class="modal-content">
+            <h2 id="airportDetailTitle">🛫 공항 상세정보</h2>
+            <div id="airportDetailContent" style="max-height: 400px; overflow-y: auto; margin: 15px 0;"></div>
+            <button class="btn-secondary" onclick="closeAirportDetailModal()">닫기</button>
+        </div>
+    </div>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp, getApps, deleteApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
         import { getFirestore, collection, doc, setDoc, getDoc, getDocs, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
         import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+        import { getStorage, ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
         
-        let db, auth, userId, flights = [], prev = {}, unsubscribe = null, routeMap = {};
+        let db, auth, userId, storage, flights = [], prev = {}, unsubscribe = null, routeMap = {};
+        
+        // ✅ 공항 이름 데이터베이스
+        const AIRPORT_NAMES = {
+            'ZBDS': 'Ordos Ejin Horo', 'ZGDY': 'Zhangjiajie Hehua', 'ZHCC': 'Zhengzhou Xinzheng Intl',
+            'ZSJN': 'Jinan Yaoqiang', 'ZSPD': 'Shanghai Pudong Intl', 'ZSTX': 'Tunxi Intl',
+            'ZSYT': 'Yantai Penglai Intl', 'ZYCC': 'Changchun Longjia', 'ZYHB': 'Harbin Taiping Intl',
+            'ZYTX': 'Shenyang Taoxian Intl', 'ZYYJ': 'Yanji Chaoyangchuan',
+            'WAMM': 'Manado Sam Ratulangi',
+            'RJAA': 'Narita Intl', 'RJBB': 'Kansai Intl', 'RJCC': 'New Chitose', 'RJFF': 'Fukuoka',
+            'RJFK': 'Kagoshima', 'RJFT': 'Kumamoto', 'RJOS': 'Tokushima', 'ROAH': 'Naha / Okinawa',
+            'RKJB': 'Muan Intl', 'RKJK': 'Kunsan Air Base', 'RKPC': 'Jeju Intl', 'RKPK': 'Gimhae Intl / Busan',
+            'RKSI': 'Incheon Intl', 'RKSS': 'Gimpo Intl', 'RKTU': 'Cheongju Intl',
+            'UAAA': 'Almaty',
+            'VTBS': 'Bangkok Suvarnabhumi', 'VTCC': 'Chiang Mai Intl',
+            'RCSS': 'Taipei Songshan', 'RCTP': 'Taiwan Taoyuan Intl',
+            'VVCR': 'Cam Ranh Intl', 'VVDN': 'Da Nang Intl', 'VVPQ': 'Phu Quoc Intl'
+        };
+        
+        // ✅ 타임존 데이터베이스 (UTC offset)
+        const AIRPORT_TIMEZONES = {
+            'ZBDS': 8, 'ZGDY': 8, 'ZHCC': 8, 'ZSJN': 8, 'ZSPD': 8, 'ZSTX': 8, 'ZSYT': 8,
+            'ZYCC': 8, 'ZYHB': 8, 'ZYTX': 8, 'ZYYJ': 8, 'WAMM': 8,
+            'RJAA': 9, 'RJBB': 9, 'RJCC': 9, 'RJFF': 9, 'RJFK': 9, 'RJFT': 9, 'RJOS': 9, 'ROAH': 9,
+            'RKJB': 9, 'RKJK': 9, 'RKPC': 9, 'RKPK': 9, 'RKSI': 9, 'RKSS': 9, 'RKTU': 9,
+            'UAAA': 5,
+            'VTBS': 7, 'VTCC': 7,
+            'RCSS': 8, 'RCTP': 8,
+            'VVCR': 7, 'VVDN': 7, 'VVPQ': 7
+        };
+        
+        // ✅ 로컬 시간 → UTC 변환
+        function localToUTC(localTime, utcOffset) {
+            if (!localTime) return '';
+            const [h, m] = localTime.split(':').map(Number);
+            let utcH = h - utcOffset;
+            if (utcH < 0) utcH += 24;
+            if (utcH >= 24) utcH -= 24;
+            return `${pad(utcH)}:${pad(m)}`;
+        }
         
         // ✅ 전체 취항 공항 일출일몰 데이터베이스 (36개 공항)
         const AIRPORT_SUN_DB = {
@@ -988,7 +1114,16 @@
         // ✅ 사용자 추가 공항 (localStorage)
         function loadCustomAirports() {
             const saved = localStorage.getItem('customAirports');
-            return saved ? JSON.parse(saved) : {};
+            const custom = saved ? JSON.parse(saved) : {};
+            
+            // ✅ 사용자 추가 공항의 타임존을 AIRPORT_TIMEZONES에 로드
+            Object.keys(custom).forEach(icao => {
+                if (custom[icao].timezone !== undefined) {
+                    AIRPORT_TIMEZONES[icao] = custom[icao].timezone;
+                }
+            });
+            
+            return custom;
         }
         
         function saveCustomAirport(icao, data) {
@@ -997,13 +1132,96 @@
             localStorage.setItem('customAirports', JSON.stringify(custom));
         }
         
+        // ✅ 공항 추가 함수
+        window.addCustomAirport = function() {
+            const icao = document.getElementById('newAirportIcao').value.trim().toUpperCase();
+            const name = document.getElementById('newAirportName').value.trim();
+            const timezone = document.getElementById('newAirportTimezone').value;
+            const month = parseInt(document.getElementById('newAirportMonth').value);
+            const sunrise = document.getElementById('newAirportSunrise').value.trim();
+            const sunset = document.getElementById('newAirportSunset').value.trim();
+            
+            if (!icao || icao.length !== 4) {
+                alert('ICAO 코드는 4글자여야 합니다 (예: LFPG)');
+                return;
+            }
+            
+            if (!sunrise || !sunset) {
+                alert('일출/일몰 시간을 입력하세요 (예: 06:30)');
+                return;
+            }
+            
+            // 시간 형식 검증
+            const timeRegex = /^([0-1][0-9]|2[0-3]):([0-5][0-9])$/;
+            if (!timeRegex.test(sunrise) || !timeRegex.test(sunset)) {
+                alert('시간 형식이 올바르지 않습니다 (HH:MM)');
+                return;
+            }
+            
+            // 기존 데이터 가져오기
+            const custom = loadCustomAirports();
+            if (!custom[icao]) {
+                custom[icao] = {};
+            }
+            
+            // 이름 저장
+            if (name) {
+                custom[icao].name = name;
+            }
+            
+            // 타임존 저장
+            if (timezone !== '') {
+                custom[icao].timezone = parseInt(timezone);
+                // AIRPORT_TIMEZONES에 동적 추가
+                AIRPORT_TIMEZONES[icao] = parseInt(timezone);
+            }
+            
+            // 해당 월 데이터 저장
+            custom[icao][month] = { sunrise, sunset };
+            
+            // localStorage에 저장
+            localStorage.setItem('customAirports', JSON.stringify(custom));
+            
+            // ✅ 업데이트 플래그 설정 (비행 모달에서 감지)
+            localStorage.setItem('airportUpdated', 'true');
+            
+            alert(`✅ ${icao} ${month}월 데이터 저장 완료!`);
+            
+            // 입력 필드 초기화
+            document.getElementById('newAirportSunrise').value = '';
+            document.getElementById('newAirportSunset').value = '';
+            
+            // 목록 새로고침
+            showAirportModal();
+        };
+        
+        // ✅ 공항 삭제 함수
+        window.deleteAirport = function(icao) {
+            if (!confirm(`${icao} 공항 데이터를 삭제하시겠습니까?`)) return;
+            
+            const custom = loadCustomAirports();
+            delete custom[icao];
+            localStorage.setItem('customAirports', JSON.stringify(custom));
+            
+            // ✅ 업데이트 플래그 설정
+            localStorage.setItem('airportUpdated', 'true');
+            
+            alert(`✅ ${icao} 삭제 완료!`);
+            showAirportModal();
+        };
+        
+        // ✅ 공항 수정 함수 (상세보기 호출)
+        window.editAirport = function(icao) {
+            viewAirportDetail(icao);
+        };
+        
         // ✅ 공항 일출일몰 가져오기 (하이브리드)
         function getSunriseSunset(icao, date) {
             const month = new Date(date).getMonth() + 1;
             
             // 1. 기본 DB 확인
             if (AIRPORT_SUN_DB[icao]) {
-                return AIRPORT_SUN_DB[icao][month] || {sunrise: '06:00', sunset: '18:00'};
+                return AIRPORT_SUN_DB[icao][month] || {sunrise: '21:00', sunset: '09:00'};
             }
             
             // 2. 사용자 추가 공항 확인
@@ -1012,9 +1230,49 @@
                 return custom[icao][month];
             }
             
-            // 3. Fallback (기본값)
-            console.log(`공항 ${icao} DB 없음, 기본값 사용`);
-            return {sunrise: '06:00', sunset: '18:00'};
+            // 3. Fallback (기본값 - UTC 기준 21:00 ~ 09:00)
+            console.log(`⚠️ 공항 ${icao} DB 없음, 기본값 사용 (21:00 ~ 09:00 UTC)`);
+            return {sunrise: '21:00', sunset: '09:00'};
+        }
+        
+        // ✅ Night Time 자동 계산 (TakeOff는 from 공항, Landing은 to 공항 기준)
+        function calculateNightTime(from, to, date, takeoffTime, landingTime) {
+            if (!takeoffTime || !landingTime || !from || !to || !date) {
+                return 0;
+            }
+            
+            // TakeOff가 from 공항의 Night Period 안에 있는지 확인
+            const toIsNight = isNightTime(from, date, takeoffTime);
+            
+            // Landing이 to 공항의 Night Period 안에 있는지 확인
+            const ldIsNight = isNightTime(to, date, landingTime);
+            
+            // 비행시간 계산
+            const toMin = timeToMinutes(takeoffTime);
+            let ldMin = timeToMinutes(landingTime);
+            if (ldMin < toMin) ldMin += 1440; // 자정 넘어가는 경우
+            const flightMin = ldMin - toMin;
+            
+            // 디버깅 로그
+            console.log(`🌙 Night Time 계산:`, {
+                from, to, date,
+                takeoffTime, landingTime,
+                toIsNight, ldIsNight,
+                flightMin,
+                result: toIsNight && ldIsNight ? flightMin/60 : (toIsNight || ldIsNight ? flightMin/120 : 0)
+            });
+            
+            // Night Time 계산
+            if (toIsNight && ldIsNight) {
+                // 둘 다 Night → 전체 비행시간
+                return flightMin / 60;
+            } else if (toIsNight || ldIsNight) {
+                // 하나만 Night → 반반
+                return (flightMin / 2) / 60;
+            } else {
+                // 둘 다 Day → 0
+                return 0;
+            }
         }
         
         // ✅ 시간 계산 헬퍼 함수
@@ -1125,6 +1383,7 @@
                 
                 db = getFirestore(app);
                 auth = getAuth(app);
+                storage = getStorage(app);
                 userId = 'pilot-logbook-user';
                 await signInAnonymously(auth);
                 
@@ -1295,6 +1554,69 @@
             document.getElementById('calcFuelReserve').textContent = (in_ > 0 && trsv > 0) ? `${reserveText} kg` : '--';
         };
         
+        // ✅ 이착륙 체크박스에 따른 역할 자동 할당
+        window.autoAssignRoles = function() {
+            const checkTakeoff = document.getElementById('checkTakeoff').checked;
+            const checkLanding = document.getElementById('checkLanding').checked;
+            
+            // Block Time 가져오기
+            const rampOut = timeStr(document.getElementById('rampOutH').value, document.getElementById('rampOutM').value);
+            const rampIn = timeStr(document.getElementById('rampInH').value, document.getElementById('rampInM').value);
+            
+            if (!rampOut || !rampIn) {
+                console.log('Block Time 계산을 위해 Rmp Out/In 필요');
+                return;
+            }
+            
+            const times = calcTimes(rampOut, '', '', rampIn);
+            const blockTime = times.block;
+            
+            if (blockTime <= 0) {
+                console.log('Block Time이 0입니다');
+                return;
+            }
+            
+            // 시나리오 판단
+            if (checkTakeoff && checkLanding) {
+                // 둘 다 체크: PIC Supv = Block Time 전체
+                const h = Math.floor(blockTime);
+                const m = Math.round((blockTime - h) * 60);
+                
+                document.getElementById('picSupvH').value = h;
+                document.getElementById('picSupvM').value = m;
+                document.getElementById('coPilotH').value = 0;
+                document.getElementById('coPilotM').value = 0;
+                
+            } else if (checkTakeoff || checkLanding) {
+                // 하나만 체크: 반씩 나누기 (홀수면 Co-Pilot에 1분 더)
+                const totalMin = Math.round(blockTime * 60);
+                const halfMin = Math.floor(totalMin / 2);
+                const extraMin = totalMin % 2; // 1분 남으면 1, 아니면 0
+                
+                const picSupvMin = halfMin;
+                const coPilotMin = halfMin + extraMin;
+                
+                // PIC Supv
+                const picSupvH = Math.floor(picSupvMin / 60);
+                const picSupvM = picSupvMin % 60;
+                document.getElementById('picSupvH').value = picSupvH;
+                document.getElementById('picSupvM').value = picSupvM;
+                
+                // Co-Pilot
+                const coPilotH = Math.floor(coPilotMin / 60);
+                const coPilotM = coPilotMin % 60;
+                document.getElementById('coPilotH').value = coPilotH;
+                document.getElementById('coPilotM').value = coPilotM;
+                
+            } else {
+                // 둘 다 체크 안함: 초기화
+                document.getElementById('picSupvH').value = '';
+                document.getElementById('picSupvM').value = '';
+                document.getElementById('coPilotH').value = '';
+                document.getElementById('coPilotM').value = '';
+            }
+        };
+        
         // ✅ 시간 자동 계산
         window.updateCalc = async function() {
             const rampOut = timeStr(document.getElementById('rampOutH').value, document.getElementById('rampOutM').value);
@@ -1336,21 +1658,36 @@
             const hasPIC = (picH > 0 || picM > 0) || (picSupvH > 0 || picSupvM > 0);
             if (!hasPIC || !from || !to || !date) return;
             
-            // 일출일몰 정보 가져오기 (DB 사용)
+            // 일출일몰 정보 가져오기 (로컬 시간)
             const depSun = getSunriseSunset(from, date);
             const arrSun = getSunriseSunset(to, date);
             
-            // 항공 규정 Night Period 계산
+            // UTC로 변환
+            const depOffset = AIRPORT_TIMEZONES[from] || 0;
+            const arrOffset = AIRPORT_TIMEZONES[to] || 0;
+            
+            const depSunriseUTC = localToUTC(depSun.sunrise, depOffset);
+            const depSunsetUTC = localToUTC(depSun.sunset, depOffset);
+            const arrSunriseUTC = localToUTC(arrSun.sunrise, arrOffset);
+            const arrSunsetUTC = localToUTC(arrSun.sunset, arrOffset);
+            
+            // 항공 규정 Night Period 계산 (로컬 시간 기준)
             const depNightStart = addMinutes(depSun.sunset, 60);
             const depNightEnd = subtractMinutes(depSun.sunrise, 60);
             const arrNightStart = addMinutes(arrSun.sunset, 60);
             const arrNightEnd = subtractMinutes(arrSun.sunrise, 60);
             
-            // 정보 표시
+            // Night Period UTC 변환
+            const depNightStartUTC = localToUTC(depNightStart, depOffset);
+            const depNightEndUTC = localToUTC(depNightEnd, depOffset);
+            const arrNightStartUTC = localToUTC(arrNightStart, arrOffset);
+            const arrNightEndUTC = localToUTC(arrNightEnd, arrOffset);
+            
+            // 정보 표시 (UTC 시간)
             document.getElementById('sunriseInfo').style.display = 'block';
             document.getElementById('sunriseText').innerHTML = `
-                <strong>${from}:</strong> SR ${depSun.sunrise}, SS ${depSun.sunset} → Night: ${depNightStart}~${depNightEnd}<br>
-                <strong>${to}:</strong> SR ${arrSun.sunrise}, SS ${arrSun.sunset} → Night: ${arrNightStart}~${arrNightEnd}
+                <strong>${from}:</strong> SR ${depSunriseUTC}(UTC), SS ${depSunsetUTC}(UTC) → Night: ${depNightStartUTC}~${depNightEndUTC}(UTC)<br>
+                <strong>${to}:</strong> SR ${arrSunriseUTC}(UTC), SS ${arrSunsetUTC}(UTC) → Night: ${arrNightStartUTC}~${arrNightEndUTC}(UTC)
             `;
             
             // TAKEOFF Day/Night 판단
@@ -1446,25 +1783,29 @@
         
         // ✅ 공항 관리
         window.showAirportModal = function() {
-            // 내장 공항 목록
+            // 내장 공항 목록 (클릭 가능)
             const builtinAirports = Object.keys(AIRPORT_SUN_DB).sort();
-            document.getElementById('builtinAirportList').innerHTML = builtinAirports.map(icao => 
-                `<div style="padding: 6px 10px; background: rgba(52, 211, 153, 0.1); border-radius: 6px; text-align: center; font-size: 12px; font-weight: 600; color: #34d399;">${icao}</div>`
-            ).join('');
+            document.getElementById('builtinAirportList').innerHTML = builtinAirports.map(icao => {
+                const name = AIRPORT_NAMES[icao] || '';
+                const displayText = name ? `<strong>${icao}</strong><br><span style="font-size: 10px; opacity: 0.8;">${name}</span>` : icao;
+                return `<div onclick="viewAirportDetail('${icao}')" style="padding: 8px; background: rgba(52, 211, 153, 0.1); border-radius: 6px; text-align: center; font-size: 11px; font-weight: 600; color: #34d399; line-height: 1.3; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='rgba(52, 211, 153, 0.2)'" onmouseout="this.style.background='rgba(52, 211, 153, 0.1)'">${displayText}</div>`;
+            }).join('');
             
-            // 사용자 추가 공항
+            // 사용자 추가 공항 (클릭 가능)
             const custom = loadCustomAirports();
             const customList = Object.keys(custom);
             if (customList.length > 0) {
-                document.getElementById('customAirportList').innerHTML = customList.map(icao =>
-                    `<div style="padding: 8px; background: rgba(251, 191, 36, 0.1); border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
-                        <span style="font-weight: 600; color: #fbbf24;">${icao}</span>
+                document.getElementById('customAirportList').innerHTML = customList.map(icao => {
+                    const name = custom[icao].name || '';
+                    const displayText = name ? `${icao} - ${name}` : icao;
+                    return `<div style="padding: 8px; background: rgba(251, 191, 36, 0.1); border-radius: 6px; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center;">
+                        <span onclick="viewAirportDetail('${icao}')" style="font-weight: 600; color: #fbbf24; cursor: pointer; flex: 1;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">${displayText}</span>
                         <div>
                             <button onclick="editAirport('${icao}')" style="margin-right: 5px; padding: 4px 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; border-radius: 4px; cursor: pointer;">✏️ 수정</button>
                             <button onclick="deleteAirport('${icao}')" style="padding: 4px 8px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 4px; cursor: pointer;">🗑️</button>
                         </div>
-                    </div>`
-                ).join('');
+                    </div>`;
+                }).join('');
             } else {
                 document.getElementById('customAirportList').innerHTML = '<p style="font-size: 12px; color: #64748b;">추가된 공항이 없습니다.</p>';
             }
@@ -1474,6 +1815,653 @@
         
         window.closeAirportModal = function() {
             document.getElementById('airportModal').classList.remove('show');
+        };
+        
+        // ✅ 공항 상세보기 (내장/사용자 공항 모두)
+        window.viewAirportDetail = function(icao) {
+            const name = AIRPORT_NAMES[icao] || '';
+            const timezone = AIRPORT_TIMEZONES[icao] || 0;
+            const custom = loadCustomAirports();
+            
+            // 타이틀 설정
+            const title = name ? `${icao} - ${name}` : icao;
+            document.getElementById('airportDetailTitle').textContent = `🛫 ${title}`;
+            
+            // 탭 구조 생성 (3개 탭)
+            let html = `
+                <div style="display: flex; gap: 10px; margin-bottom: 15px; border-bottom: 2px solid #334155;">
+                    <button id="tabSunrise" class="airport-tab active" onclick="switchAirportTab('sunrise', '${icao}')">
+                        🌅 일출일몰
+                    </button>
+                    <button id="tabNotes" class="airport-tab" onclick="switchAirportTab('notes', '${icao}')">
+                        📝 특이사항
+                    </button>
+                    <button id="tabLayover" class="airport-tab" onclick="switchAirportTab('layover', '${icao}')">
+                        🏨 레이오버
+                    </button>
+                </div>
+                <div id="tabContentSunrise" class="tab-content active"></div>
+                <div id="tabContentNotes" class="tab-content" style="display: none;"></div>
+                <div id="tabContentLayover" class="tab-content" style="display: none;"></div>
+            `;
+            
+            document.getElementById('airportDetailContent').innerHTML = html;
+            
+            // 일출일몰 탭 내용 생성
+            renderSunriseTab(icao, timezone, custom);
+            
+            // 특이사항 탭 내용 생성 (초기 로드)
+            renderNotesTab(icao);
+            
+            // 레이오버 탭 내용 생성 (초기 로드)
+            renderLayoverTab(icao);
+            
+            document.getElementById('airportDetailModal').classList.add('show');
+        };
+        
+        // ✅ 일출일몰 탭 렌더링
+        function renderSunriseTab(icao, timezone, custom) {
+            // 월별 데이터 수집
+            let monthlyData = [];
+            for (let month = 1; month <= 12; month++) {
+                let sunData = null;
+                
+                if (custom[icao] && custom[icao][month]) {
+                    sunData = custom[icao][month];
+                } else if (AIRPORT_SUN_DB[icao] && AIRPORT_SUN_DB[icao][month]) {
+                    sunData = AIRPORT_SUN_DB[icao][month];
+                }
+                
+                if (sunData) {
+                    const sunriseUTC = localToUTC(sunData.sunrise, timezone);
+                    const sunsetUTC = localToUTC(sunData.sunset, timezone);
+                    const nightStart = addMinutes(sunData.sunset, 60);
+                    const nightEnd = subtractMinutes(sunData.sunrise, 60);
+                    const nightStartUTC = localToUTC(nightStart, timezone);
+                    const nightEndUTC = localToUTC(nightEnd, timezone);
+                    
+                    monthlyData.push({
+                        month,
+                        sunrise: sunData.sunrise,
+                        sunset: sunData.sunset,
+                        sunriseUTC,
+                        sunsetUTC,
+                        nightStartUTC,
+                        nightEndUTC,
+                        isCustom: custom[icao] && custom[icao][month] ? true : false
+                    });
+                }
+            }
+            
+            let html = `
+                <div style="background: rgba(96, 165, 250, 0.1); padding: 10px; border-radius: 6px; margin-bottom: 15px;">
+                    <strong>타임존:</strong> UTC${timezone >= 0 ? '+' : ''}${timezone}
+                </div>
+                <div style="display: grid; gap: 8px;">
+            `;
+            
+            monthlyData.forEach(data => {
+                const badge = data.isCustom ? '<span style="background: #fbbf24; color: #000; padding: 2px 6px; border-radius: 4px; font-size: 9px; margin-left: 5px;">수정됨</span>' : '';
+                html += `
+                    <div style="background: rgba(30, 41, 59, 0.5); padding: 10px; border-radius: 6px; border-left: 3px solid ${data.isCustom ? '#fbbf24' : '#34d399'};">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <strong style="color: #60a5fa;">${data.month}월</strong>
+                            <button onclick="editAirportMonth('${icao}', ${data.month})" style="padding: 3px 8px; background: rgba(59, 130, 246, 0.2); border: 1px solid rgba(59, 130, 246, 0.4); color: #60a5fa; border-radius: 4px; cursor: pointer; font-size: 11px;">✏️ 수정</button>
+                        </div>
+                        <div style="font-size: 12px; line-height: 1.6;">
+                            <div>로컬: SR ${data.sunrise}, SS ${data.sunset}${badge}</div>
+                            <div style="color: #94a3b8;">UTC: SR ${data.sunriseUTC}, SS ${data.sunsetUTC}</div>
+                            <div style="color: #fbbf24;">Night: ${data.nightStartUTC} ~ ${data.nightEndUTC} (UTC)</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            document.getElementById('tabContentSunrise').innerHTML = html;
+        }
+        
+        // ✅ 특이사항 탭 렌더링
+        async function renderNotesTab(icao) {
+            const html = `
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: #60a5fa;">📝 특이사항 및 절차</h3>
+                        <button onclick="exportAirportNoteToPDF('${icao}')" style="padding: 5px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            📄 PDF 내보내기
+                        </button>
+                    </div>
+                    <div id="editor-${icao}" contenteditable="true" style="
+                        min-height: 300px;
+                        max-height: 500px;
+                        overflow-y: auto;
+                        padding: 15px;
+                        background: rgba(30, 41, 59, 0.5);
+                        border: 1px solid #334155;
+                        border-radius: 6px;
+                        color: #e2e8f0;
+                        line-height: 1.6;
+                        font-family: inherit;
+                    " placeholder="여기에 공항 특이사항, 절차, 주의사항 등을 입력하세요...&#10;&#10;이미지를 붙여넣을 수 있습니다 (Ctrl+V)"></div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #94a3b8;">
+                        💡 팁: 이미지를 직접 붙여넣거나(Ctrl+V), 드래그앤드롭할 수 있습니다.
+                    </div>
+                    <button onclick="saveAirportNote('${icao}')" style="margin-top: 10px; padding: 8px 15px; background: #3b82f6; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        💾 저장
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('tabContentNotes').innerHTML = html;
+            
+            // Firebase에서 노트 로드
+            await loadAirportNote(icao);
+            
+            // 이미지 붙여넣기 이벤트 설정
+            setupImagePaste(icao);
+        }
+        
+        // ✅ 레이오버 탭 렌더링
+        async function renderLayoverTab(icao) {
+            const html = `
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <h3 style="margin: 0; color: #60a5fa;">🏨 레이오버 정보</h3>
+                        <button onclick="exportLayoverToPDF('${icao}')" style="padding: 5px 10px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                            📄 PDF 내보내기
+                        </button>
+                    </div>
+                    <div id="layover-editor-${icao}" contenteditable="true" style="
+                        min-height: 300px;
+                        max-height: 500px;
+                        overflow-y: auto;
+                        padding: 15px;
+                        background: rgba(30, 41, 59, 0.5);
+                        border: 1px solid #334155;
+                        border-radius: 6px;
+                        color: #e2e8f0;
+                        line-height: 1.6;
+                        font-family: inherit;
+                    " placeholder="호텔 정보, 추천 숙소, 교통편, 식당, 관광지 등을 기록하세요...&#10;&#10;예시:&#10;🏨 호텔: Hilton Airport (Tel: +1-234-5678)&#10;🚕 택시비: 약 $30 (공항↔호텔)&#10;🍽️ 추천 식당: ABC Restaurant&#10;&#10;이미지를 붙여넣을 수 있습니다 (Ctrl+V)"></div>
+                    <div style="margin-top: 10px; font-size: 11px; color: #94a3b8;">
+                        💡 팁: 호텔 위치 지도, 교통편 정보, 식당 사진 등을 붙여넣을 수 있습니다.
+                    </div>
+                    <button onclick="saveAirportLayover('${icao}')" style="margin-top: 10px; padding: 8px 15px; background: #3b82f6; border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                        💾 저장
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('tabContentLayover').innerHTML = html;
+            
+            // Firebase에서 레이오버 정보 로드
+            await loadAirportLayover(icao);
+            
+            // 이미지 붙여넣기 이벤트 설정
+            setupImagePasteLayover(icao);
+        }
+        
+        // ✅ 탭 전환
+        window.switchAirportTab = function(tab, icao) {
+            // 탭 버튼 활성화
+            document.querySelectorAll('.airport-tab').forEach(btn => btn.classList.remove('active'));
+            const tabButtons = {
+                'sunrise': 'tabSunrise',
+                'notes': 'tabNotes',
+                'layover': 'tabLayover'
+            };
+            document.getElementById(tabButtons[tab]).classList.add('active');
+            
+            // 탭 내용 표시
+            document.querySelectorAll('.tab-content').forEach(content => content.style.display = 'none');
+            const tabContents = {
+                'sunrise': 'tabContentSunrise',
+                'notes': 'tabContentNotes',
+                'layover': 'tabContentLayover'
+            };
+            document.getElementById(tabContents[tab]).style.display = 'block';
+        };
+        
+        window.closeAirportDetailModal = function() {
+            document.getElementById('airportDetailModal').classList.remove('show');
+        };
+        
+        // ✅ 이미지 붙여넣기 설정
+        function setupImagePaste(icao) {
+            const editor = document.getElementById(`editor-${icao}`);
+            if (!editor) return;
+            
+            // 붙여넣기 이벤트
+            editor.addEventListener('paste', async (e) => {
+                const items = e.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        await insertImage(editor, file, icao);
+                    }
+                }
+            });
+            
+            // 드래그앤드롭
+            editor.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                editor.style.background = 'rgba(59, 130, 246, 0.1)';
+            });
+            
+            editor.addEventListener('dragleave', () => {
+                editor.style.background = 'rgba(30, 41, 59, 0.5)';
+            });
+            
+            editor.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                editor.style.background = 'rgba(30, 41, 59, 0.5)';
+                
+                const files = e.dataTransfer.files;
+                for (let file of files) {
+                    if (file.type.indexOf('image') !== -1) {
+                        await insertImage(editor, file, icao);
+                    }
+                }
+            });
+        }
+        
+        // ✅ 이미지 삽입 (썸네일 생성)
+        async function insertImage(editor, file, icao) {
+            try {
+                // 로딩 표시
+                const loadingDiv = document.createElement('div');
+                loadingDiv.textContent = '이미지 업로드 중...';
+                loadingDiv.style.cssText = 'color: #60a5fa; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; margin: 5px 0;';
+                editor.appendChild(loadingDiv);
+                
+                // 이미지 리사이즈 (썸네일 400px)
+                const thumbnail = await resizeImage(file, 400);
+                
+                // Firebase Storage에 업로드
+                const timestamp = Date.now();
+                const thumbRef = storageRef(storage, `airport-notes/${icao}/${timestamp}_thumb.jpg`);
+                const originalRef = storageRef(storage, `airport-notes/${icao}/${timestamp}_original.jpg`);
+                
+                // 썸네일 업로드
+                await uploadBytes(thumbRef, thumbnail);
+                const thumbURL = await getDownloadURL(thumbRef);
+                
+                // 원본 업로드
+                await uploadBytes(originalRef, file);
+                const originalURL = await getDownloadURL(originalRef);
+                
+                // 에디터에 이미지 삽입
+                const img = document.createElement('img');
+                img.src = thumbURL;
+                img.dataset.original = originalURL;
+                img.title = '클릭하면 원본 크기로 보기';
+                img.onclick = function() {
+                    window.open(this.dataset.original, '_blank');
+                };
+                
+                editor.removeChild(loadingDiv);
+                editor.appendChild(img);
+                editor.appendChild(document.createElement('br'));
+                
+            } catch (error) {
+                console.error('이미지 업로드 실패:', error);
+                alert('이미지 업로드 실패: ' + error.message);
+            }
+        }
+        
+        // ✅ 이미지 리사이즈
+        function resizeImage(file, maxSize) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        
+                        if (width > height && width > maxSize) {
+                            height = (height * maxSize) / width;
+                            width = maxSize;
+                        } else if (height > maxSize) {
+                            width = (width * maxSize) / height;
+                            height = maxSize;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        canvas.toBlob((blob) => {
+                            resolve(blob);
+                        }, 'image/jpeg', 0.85);
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+        
+        // ✅ 공항 노트 로드
+        async function loadAirportNote(icao) {
+            if (!db || !userId) return;
+            
+            try {
+                const noteDoc = await getDoc(doc(db, `users/${userId}/airport-notes/${icao}`));
+                if (noteDoc.exists()) {
+                    const editor = document.getElementById(`editor-${icao}`);
+                    if (editor) {
+                        editor.innerHTML = noteDoc.data().content || '';
+                    }
+                }
+            } catch (error) {
+                console.error('노트 로드 실패:', error);
+            }
+        }
+        
+        // ✅ 공항 노트 저장
+        window.saveAirportNote = async function(icao) {
+            if (!db || !userId) {
+                alert('Firebase 연결이 필요합니다.');
+                return;
+            }
+            
+            try {
+                const editor = document.getElementById(`editor-${icao}`);
+                const content = editor.innerHTML;
+                
+                await setDoc(doc(db, `users/${userId}/airport-notes/${icao}`), {
+                    content: content,
+                    updatedAt: new Date().toISOString()
+                });
+                
+                alert(`✅ ${icao} 노트 저장 완료!`);
+            } catch (error) {
+                console.error('노트 저장 실패:', error);
+                alert('노트 저장 실패: ' + error.message);
+            }
+        };
+        
+        // ✅ 레이오버 이미지 붙여넣기 설정
+        function setupImagePasteLayover(icao) {
+            const editor = document.getElementById(`layover-editor-${icao}`);
+            if (!editor) return;
+            
+            // 붙여넣기 이벤트
+            editor.addEventListener('paste', async (e) => {
+                const items = e.clipboardData.items;
+                for (let item of items) {
+                    if (item.type.indexOf('image') !== -1) {
+                        e.preventDefault();
+                        const file = item.getAsFile();
+                        await insertImageLayover(editor, file, icao);
+                    }
+                }
+            });
+            
+            // 드래그앤드롭
+            editor.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                editor.style.background = 'rgba(59, 130, 246, 0.1)';
+            });
+            
+            editor.addEventListener('dragleave', () => {
+                editor.style.background = 'rgba(30, 41, 59, 0.5)';
+            });
+            
+            editor.addEventListener('drop', async (e) => {
+                e.preventDefault();
+                editor.style.background = 'rgba(30, 41, 59, 0.5)';
+                
+                const files = e.dataTransfer.files;
+                for (let file of files) {
+                    if (file.type.indexOf('image') !== -1) {
+                        await insertImageLayover(editor, file, icao);
+                    }
+                }
+            });
+        }
+        
+        // ✅ 레이오버 이미지 삽입
+        async function insertImageLayover(editor, file, icao) {
+            try {
+                const loadingDiv = document.createElement('div');
+                loadingDiv.textContent = '이미지 업로드 중...';
+                loadingDiv.style.cssText = 'color: #60a5fa; padding: 10px; background: rgba(59, 130, 246, 0.1); border-radius: 4px; margin: 5px 0;';
+                editor.appendChild(loadingDiv);
+                
+                const thumbnail = await resizeImage(file, 400);
+                const timestamp = Date.now();
+                const thumbRef = storageRef(storage, `airport-layover/${icao}/${timestamp}_thumb.jpg`);
+                const originalRef = storageRef(storage, `airport-layover/${icao}/${timestamp}_original.jpg`);
+                
+                await uploadBytes(thumbRef, thumbnail);
+                const thumbURL = await getDownloadURL(thumbRef);
+                
+                await uploadBytes(originalRef, file);
+                const originalURL = await getDownloadURL(originalRef);
+                
+                const img = document.createElement('img');
+                img.src = thumbURL;
+                img.dataset.original = originalURL;
+                img.title = '클릭하면 원본 크기로 보기';
+                img.onclick = function() {
+                    window.open(this.dataset.original, '_blank');
+                };
+                
+                editor.removeChild(loadingDiv);
+                editor.appendChild(img);
+                editor.appendChild(document.createElement('br'));
+                
+            } catch (error) {
+                console.error('이미지 업로드 실패:', error);
+                alert('이미지 업로드 실패: ' + error.message);
+            }
+        }
+        
+        // ✅ 레이오버 정보 로드
+        async function loadAirportLayover(icao) {
+            if (!db || !userId) return;
+            
+            try {
+                const layoverDoc = await getDoc(doc(db, `users/${userId}/airport-layover/${icao}`));
+                if (layoverDoc.exists()) {
+                    const editor = document.getElementById(`layover-editor-${icao}`);
+                    if (editor) {
+                        editor.innerHTML = layoverDoc.data().content || '';
+                    }
+                }
+            } catch (error) {
+                console.error('레이오버 정보 로드 실패:', error);
+            }
+        }
+        
+        // ✅ 레이오버 정보 저장
+        window.saveAirportLayover = async function(icao) {
+            if (!db || !userId) {
+                alert('Firebase 연결이 필요합니다.');
+                return;
+            }
+            
+            try {
+                const editor = document.getElementById(`layover-editor-${icao}`);
+                const content = editor.innerHTML;
+                
+                await setDoc(doc(db, `users/${userId}/airport-layover/${icao}`), {
+                    content: content,
+                    updatedAt: new Date().toISOString()
+                });
+                
+                alert(`✅ ${icao} 레이오버 정보 저장 완료!`);
+            } catch (error) {
+                console.error('레이오버 정보 저장 실패:', error);
+                alert('레이오버 정보 저장 실패: ' + error.message);
+            }
+        };
+        
+        // ✅ 레이오버 PDF 내보내기
+        window.exportLayoverToPDF = async function(icao) {
+            const editor = document.getElementById(`layover-editor-${icao}`);
+            if (!editor || !editor.innerHTML.trim()) {
+                alert('저장된 레이오버 정보가 없습니다.');
+                return;
+            }
+            
+            try {
+                const name = AIRPORT_NAMES[icao] || icao;
+                const title = `${icao} - ${name} 레이오버 정보`;
+                
+                const printWindow = window.open('', '', 'width=800,height=600');
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>${title}</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                padding: 20px;
+                                max-width: 800px;
+                                margin: 0 auto;
+                            }
+                            h1 {
+                                color: #1e3a8a;
+                                border-bottom: 3px solid #3b82f6;
+                                padding-bottom: 10px;
+                            }
+                            img {
+                                max-width: 100%;
+                                height: auto;
+                                margin: 10px 0;
+                            }
+                            .timestamp {
+                                color: #64748b;
+                                font-size: 12px;
+                                margin-top: 20px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🏨 ${title}</h1>
+                        <div>${editor.innerHTML}</div>
+                        <div class="timestamp">생성일: ${new Date().toLocaleString('ko-KR')}</div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+                
+            } catch (error) {
+                console.error('PDF 내보내기 실패:', error);
+                alert('PDF 내보내기 실패: ' + error.message);
+            }
+        };
+        
+        // ✅ PDF 내보내기
+        window.exportAirportNoteToPDF = async function(icao) {
+            const editor = document.getElementById(`editor-${icao}`);
+            if (!editor || !editor.innerHTML.trim()) {
+                alert('저장된 노트가 없습니다.');
+                return;
+            }
+            
+            try {
+                const name = AIRPORT_NAMES[icao] || icao;
+                const title = `${icao} - ${name} 특이사항`;
+                
+                // 새 창에서 프린트
+                const printWindow = window.open('', '', 'width=800,height=600');
+                printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <title>${title}</title>
+                        <style>
+                            body {
+                                font-family: Arial, sans-serif;
+                                padding: 20px;
+                                max-width: 800px;
+                                margin: 0 auto;
+                            }
+                            h1 {
+                                color: #1e3a8a;
+                                border-bottom: 3px solid #3b82f6;
+                                padding-bottom: 10px;
+                            }
+                            img {
+                                max-width: 100%;
+                                height: auto;
+                                margin: 10px 0;
+                            }
+                            .timestamp {
+                                color: #64748b;
+                                font-size: 12px;
+                                margin-top: 20px;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <h1>🛫 ${title}</h1>
+                        <div>${editor.innerHTML}</div>
+                        <div class="timestamp">생성일: ${new Date().toLocaleString('ko-KR')}</div>
+                    </body>
+                    </html>
+                `);
+                printWindow.document.close();
+                
+                // 이미지 로드 대기 후 프린트
+                setTimeout(() => {
+                    printWindow.print();
+                }, 500);
+                
+            } catch (error) {
+                console.error('PDF 내보내기 실패:', error);
+                alert('PDF 내보내기 실패: ' + error.message);
+            }
+        };
+        
+        // ✅ 특정 월 수정 (오버라이드)
+        window.editAirportMonth = function(icao, month) {
+            // 상세 모달 닫기
+            closeAirportDetailModal();
+            
+            // 기존 데이터 가져오기
+            const custom = loadCustomAirports();
+            let sunData = null;
+            
+            if (custom[icao] && custom[icao][month]) {
+                sunData = custom[icao][month];
+            } else if (AIRPORT_SUN_DB[icao] && AIRPORT_SUN_DB[icao][month]) {
+                sunData = AIRPORT_SUN_DB[icao][month];
+            }
+            
+            // 입력 폼에 데이터 채우기
+            document.getElementById('newAirportIcao').value = icao;
+            if (AIRPORT_NAMES[icao]) {
+                document.getElementById('newAirportName').value = AIRPORT_NAMES[icao];
+            }
+            if (AIRPORT_TIMEZONES[icao]) {
+                document.getElementById('newAirportTimezone').value = AIRPORT_TIMEZONES[icao];
+            }
+            document.getElementById('newAirportMonth').value = month;
+            
+            if (sunData) {
+                document.getElementById('newAirportSunrise').value = sunData.sunrise;
+                document.getElementById('newAirportSunset').value = sunData.sunset;
+            }
+            
+            // 입력 폼으로 스크롤
+            document.querySelector('#newAirportIcao').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('newAirportSunrise').focus();
         };
         
         window.showAddAirportForm = function() {
@@ -1563,11 +2551,39 @@
             document.getElementById('modal').classList.add('show');
             document.getElementById('date').value = new Date().toISOString().split('T')[0];
             
+            // ✅ 이착륙 체크박스 초기화
+            document.getElementById('checkTakeoff').checked = false;
+            document.getElementById('checkLanding').checked = false;
+            
             ['rampOutH', 'rampOutM', 'takeoffH', 'takeoffM', 'landingH', 'landingM', 'rampInH', 'rampInM'].forEach(id => {
                 const el = document.getElementById(id);
                 el.removeEventListener('input', updateCalc);
                 el.addEventListener('input', updateCalc);
             });
+            
+            // ✅ From/To/Date 변경 시 공항 업데이트 체크
+            const checkAirportUpdate = () => {
+                if (localStorage.getItem('airportUpdated') === 'true') {
+                    localStorage.removeItem('airportUpdated');
+                    setTimeout(() => {
+                        window.updateCalc();
+                    }, 100);
+                }
+            };
+            
+            ['from', 'to', 'date'].forEach(id => {
+                const el = document.getElementById(id);
+                el.removeEventListener('change', checkAirportUpdate);
+                el.addEventListener('change', checkAirportUpdate);
+            });
+            
+            // ✅ 공항 업데이트 체크 (즉시 실행)
+            if (localStorage.getItem('airportUpdated') === 'true') {
+                localStorage.removeItem('airportUpdated');
+                setTimeout(() => {
+                    window.updateCalc();
+                }, 100);
+            }
         };
         
         window.closeModal = function() {
@@ -1619,7 +2635,10 @@
                 wxDest: document.getElementById('wxDest').value,
                 landingComment: document.getElementById('landingComment').value,
                 clearance: document.getElementById('clearance').value,
-                tip: document.getElementById('tip').value
+                tip: document.getElementById('tip').value,
+                // ✅ 이착륙 체크박스 상태 저장
+                checkTakeoff: document.getElementById('checkTakeoff').checked,
+                checkLanding: document.getElementById('checkLanding').checked
             };
             
             await saveFlightToFirebase(data);
@@ -1707,9 +2726,37 @@
             document.getElementById('clearance').value = f.clearance || '';
             document.getElementById('tip').value = f.tip || '';
             
+            // ✅ 이착륙 체크박스 복원
+            document.getElementById('checkTakeoff').checked = f.checkTakeoff || false;
+            document.getElementById('checkLanding').checked = f.checkLanding || false;
+            
             window.updateCalc();
             calcFuel();
             document.getElementById('modal').classList.add('show');
+            
+            // ✅ From/To/Date 변경 시 공항 업데이트 체크
+            const checkAirportUpdate = () => {
+                if (localStorage.getItem('airportUpdated') === 'true') {
+                    localStorage.removeItem('airportUpdated');
+                    setTimeout(() => {
+                        window.updateCalc();
+                    }, 100);
+                }
+            };
+            
+            ['from', 'to', 'date'].forEach(id => {
+                const el = document.getElementById(id);
+                el.removeEventListener('change', checkAirportUpdate);
+                el.addEventListener('change', checkAirportUpdate);
+            });
+            
+            // ✅ 공항 업데이트 체크 (즉시 실행)
+            if (localStorage.getItem('airportUpdated') === 'true') {
+                localStorage.removeItem('airportUpdated');
+                setTimeout(() => {
+                    window.updateCalc();
+                }, 100);
+            }
         };
         
         window.deleteFlight = async function(id) {
