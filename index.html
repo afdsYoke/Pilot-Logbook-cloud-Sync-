@@ -2724,12 +2724,12 @@
             const tableData = pageData.flights.map(f => [
                 `${pad(new Date(f.date).getMonth() + 1)}/${pad(new Date(f.date).getDate())}`,
                 f.aircraft || '',
-                f.reg || '',
+                f.acIdent || '',
                 f.fltNo || '',
                 `${f.from}-${f.to}`,
                 toDisplay(f.pic || 0),
-                toDisplay(f.coPilot || 0),
                 toDisplay(f.picSupv || 0),
+                toDisplay(f.coPilot || 0),
                 '',
                 '',
                 toDisplay(f.blockTime || 0),
@@ -2744,6 +2744,70 @@
                 tableData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
             }
             
+            // ✅ 합계 행 추가 (각 컬럼 아래에 표시)
+            if (options.pageTotal) {
+                tableData.push([
+                    'Page Totals:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(pageTotal.pic),
+                    toDisplay(pageTotal.picSupv),
+                    toDisplay(pageTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(pageTotal.block),
+                    toDisplay(pageTotal.night),
+                    toDisplay(pageTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
+            if (options.cumulativeTotal && hasPrevTotal) {
+                tableData.push([
+                    'Prev Total:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(prevCumTotal.pic),
+                    toDisplay(prevCumTotal.picSupv),
+                    toDisplay(prevCumTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(prevCumTotal.block),
+                    toDisplay(prevCumTotal.night),
+                    toDisplay(prevCumTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
+            if (options.cumulativeTotal) {
+                tableData.push([
+                    'Total to Date:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(cumTotal.pic),
+                    toDisplay(cumTotal.picSupv),
+                    toDisplay(cumTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(cumTotal.block),
+                    toDisplay(cumTotal.night),
+                    toDisplay(cumTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
             // Prev Total 표시 여부에 따라 테이블 시작 위치 조정
             const hasPrevTotal = (pageNum > 1 || (prevCumTotal.pic > 0 || prevCumTotal.block > 0)) && options.cumulativeTotal;
             
@@ -2752,12 +2816,12 @@
                 head: [[
                     'DATE\n(MM/DD)',
                     'AIRCRAFT\nTYPE',
-                    'A/C\nDEPT',
+                    'A/C\nIdent',
                     'FLIGHT\nNO',
                     'ROUTE OF FLIGHT\n(FROM - TO)',
                     'PIC',
-                    'CO-\nPILOT',
                     'UNDER\nSUPVN',
+                    'CO-\nPILOT',
                     'IP',
                     'ITR',
                     'BLOCK',
@@ -2777,27 +2841,20 @@
                     8: { cellWidth: 10 }, 9: { cellWidth: 10 }, 10: { cellWidth: 15 }, 11: { cellWidth: 12 },
                     12: { cellWidth: 12 }, 13: { cellWidth: 12 }, 14: { cellWidth: 15 }, 15: { cellWidth: 35 }
                 },
+                didParseCell: function(data) {
+                    // 합계 행 스타일링 (행 번호가 15 이상인 행들)
+                    if (data.row.index >= 15) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [240, 240, 240];
+                        data.cell.styles.fontSize = 8;
+                    }
+                },
                 margin: { left: margin, right: margin }
             });
             
-            if (options.pageTotal) {
-                const finalY = doc.lastAutoTable.finalY + 3;
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Page Totals: PIC ${toDisplay(pageTotal.pic)} | CO-P ${toDisplay(pageTotal.coPilot)} | SUPV ${toDisplay(pageTotal.picSupv)} | Block ${toDisplay(pageTotal.block)} | Night ${toDisplay(pageTotal.night)} | Inst ${toDisplay(pageTotal.inst)}`, 
-                    margin, finalY);
-            }
-            
-            if (options.cumulativeTotal) {
-                const finalY = doc.lastAutoTable.finalY + (options.pageTotal ? 8 : 3);
-                doc.setFontSize(8);
-                doc.setFont(undefined, 'bold');
-                doc.text(`Total to Date: PIC ${toDisplay(cumTotal.pic)} | CO-P ${toDisplay(cumTotal.coPilot)} | SUPV ${toDisplay(cumTotal.picSupv)} | Block ${toDisplay(cumTotal.block)} | Night ${toDisplay(cumTotal.night)} | Inst ${toDisplay(cumTotal.inst)}`, 
-                    margin, finalY);
-            }
-            
+            // 서명란
             if (options.signature) {
-                const finalY = doc.lastAutoTable.finalY + (options.pageTotal ? 13 : 8);
+                const finalY = doc.lastAutoTable.finalY + 5;
                 doc.setFontSize(9);
                 doc.setFont(undefined, 'normal');
                 doc.text("PILOT'S SIGNATURE: _______________________", margin, finalY);
@@ -2861,8 +2918,8 @@
                 ws_data.push([]);
                 
                 ws_data.push([
-                    'DATE (MM/DD)', 'AIRCRAFT TYPE', 'A/C DEPT', 'FLIGHT NO', 'ROUTE OF FLIGHT',
-                    'PIC', 'CO-PILOT', 'UNDER SUPVN', 'IP', 'ITR',
+                    'DATE (MM/DD)', 'AIRCRAFT TYPE', 'A/C Ident', 'FLIGHT NO', 'ROUTE OF FLIGHT',
+                    'PIC', 'UNDER SUPVN', 'CO-PILOT', 'IP', 'ITR',
                     'BLOCK', 'NIGHT', 'INST', 'APP TYPE', 'D/N', 'REMARKS'
                 ]);
                 
@@ -2888,12 +2945,12 @@
                     ws_data.push([
                         `${pad(new Date(f.date).getMonth() + 1)}/${pad(new Date(f.date).getDate())}`,
                         f.aircraft || '',
-                        f.reg || '',
+                        f.acIdent || '',
                         f.fltNo || '',
                         `${f.from}-${f.to}`,
                         toDisplay(f.pic || 0),
-                        toDisplay(f.coPilot || 0),
                         toDisplay(f.picSupv || 0),
+                        toDisplay(f.coPilot || 0),
                         '',
                         '',
                         toDisplay(f.blockTime || 0),
@@ -2909,18 +2966,68 @@
                     ws_data.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
                 }
                 
-                ws_data.push([]);
-                
+                // ✅ 합계 행 추가 (각 컬럼 아래에 표시)
                 if (options.pageTotal) {
-                    ws_data.push([`Page Totals: PIC ${toDisplay(pageTotal.pic)} | CO-P ${toDisplay(pageTotal.coPilot)} | SUPV ${toDisplay(pageTotal.picSupv)} | Block ${toDisplay(pageTotal.block)} | Night ${toDisplay(pageTotal.night)} | Inst ${toDisplay(pageTotal.inst)}`]);
+                    ws_data.push([
+                        'Page Totals:',
+                        '',
+                        '',
+                        '',
+                        '',
+                        toDisplay(pageTotal.pic),
+                        toDisplay(pageTotal.picSupv),
+                        toDisplay(pageTotal.coPilot),
+                        '',
+                        '',
+                        toDisplay(pageTotal.block),
+                        toDisplay(pageTotal.night),
+                        toDisplay(pageTotal.inst),
+                        '',
+                        '',
+                        ''
+                    ]);
                 }
                 
                 if (options.cumulativeTotal) {
                     // Prev Total: Page 1에서도 이전 데이터가 있으면 표시, Page 2부터는 항상 표시
                     if (pageIdx > 0 || (prevCumulative.pic > 0 || prevCumulative.block > 0)) {
-                        ws_data.push([`Prev Total: PIC ${toDisplay(prevCumulative.pic)} | CO-P ${toDisplay(prevCumulative.coPilot)} | SUPV ${toDisplay(prevCumulative.picSupv)} | Block ${toDisplay(prevCumulative.block)} | Night ${toDisplay(prevCumulative.night)} | Inst ${toDisplay(prevCumulative.inst)}`]);
+                        ws_data.push([
+                            'Prev Total:',
+                            '',
+                            '',
+                            '',
+                            '',
+                            toDisplay(prevCumulative.pic),
+                            toDisplay(prevCumulative.picSupv),
+                            toDisplay(prevCumulative.coPilot),
+                            '',
+                            '',
+                            toDisplay(prevCumulative.block),
+                            toDisplay(prevCumulative.night),
+                            toDisplay(prevCumulative.inst),
+                            '',
+                            '',
+                            ''
+                        ]);
                     }
-                    ws_data.push([`Total to Date: PIC ${toDisplay(cumulativeTotal.pic)} | CO-P ${toDisplay(cumulativeTotal.coPilot)} | SUPV ${toDisplay(cumulativeTotal.picSupv)} | Block ${toDisplay(cumulativeTotal.block)} | Night ${toDisplay(cumulativeTotal.night)} | Inst ${toDisplay(cumulativeTotal.inst)}`]);
+                    ws_data.push([
+                        'Total to Date:',
+                        '',
+                        '',
+                        '',
+                        '',
+                        toDisplay(cumulativeTotal.pic),
+                        toDisplay(cumulativeTotal.picSupv),
+                        toDisplay(cumulativeTotal.coPilot),
+                        '',
+                        '',
+                        toDisplay(cumulativeTotal.block),
+                        toDisplay(cumulativeTotal.night),
+                        toDisplay(cumulativeTotal.inst),
+                        '',
+                        '',
+                        ''
+                    ]);
                 }
                 
                 if (options.signature) {

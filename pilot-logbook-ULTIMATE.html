@@ -9,6 +9,10 @@
     <!-- SheetJS -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -344,6 +348,7 @@
                 <button class="btn-secondary" onclick="showFirebaseSettings()">⚙️ Firebase 설정</button>
                 <button class="btn-secondary" onclick="showRouteModal()">🗺️ 노선 설정</button>
                 <button class="btn-secondary" onclick="showAirportModal()">🛫 공항 관리</button>
+                <button class="btn-primary" onclick="showExportModal()" style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">📄 로그북 출력</button>
                 <button class="btn-danger" onclick="resetAll()">🔄 전체 리셋</button>
             </div>
 
@@ -753,6 +758,127 @@
             <h2 id="airportDetailTitle">🛫 공항 상세정보</h2>
             <div id="airportDetailContent" style="max-height: 400px; overflow-y: auto; margin: 15px 0;"></div>
             <button class="btn-secondary" onclick="closeAirportDetailModal()">닫기</button>
+        </div>
+    </div>
+
+    <!-- Logbook Export Modal -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>📄 로그북 출력</h2>
+            
+            <div class="form-group">
+                <label><strong>1. 출력 형식</strong></label>
+                <div style="display: flex; gap: 20px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportFormat" value="pdf" checked>
+                        <span>📄 PDF</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportFormat" value="excel">
+                        <span>📊 Excel</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><strong>2. 출력 범위</strong></label>
+                <div style="display: flex; gap: 20px; margin-top: 8px; flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportRange" value="all" checked onchange="toggleRangeInputs()">
+                        <span>전체</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportRange" value="year" onchange="toggleRangeInputs()">
+                        <span>년도별</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportRange" value="month" onchange="toggleRangeInputs()">
+                        <span>월별</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportRange" value="custom" onchange="toggleRangeInputs()">
+                        <span>기간 지정</span>
+                    </label>
+                </div>
+                
+                <div id="rangeInputYear" style="display: none; margin-top: 10px;">
+                    <label>년도 선택:</label>
+                    <select id="exportYear" style="width: 150px; padding: 5px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px;">
+                    </select>
+                </div>
+                
+                <div id="rangeInputMonth" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; gap: 10px;">
+                        <div>
+                            <label>년도:</label>
+                            <select id="exportMonthYear" style="width: 150px; padding: 5px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px;">
+                            </select>
+                        </div>
+                        <div>
+                            <label>월:</label>
+                            <select id="exportMonth" style="width: 100px; padding: 5px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px;">
+                                <option value="1">1월</option>
+                                <option value="2">2월</option>
+                                <option value="3">3월</option>
+                                <option value="4">4월</option>
+                                <option value="5">5월</option>
+                                <option value="6">6월</option>
+                                <option value="7">7월</option>
+                                <option value="8">8월</option>
+                                <option value="9">9월</option>
+                                <option value="10">10월</option>
+                                <option value="11">11월</option>
+                                <option value="12">12월</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="rangeInputCustom" style="display: none; margin-top: 10px;">
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="date" id="exportStartDate" style="padding: 5px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px;">
+                        <span>~</span>
+                        <input type="date" id="exportEndDate" style="padding: 5px; background: #1e293b; color: #e2e8f0; border: 1px solid #334155; border-radius: 4px;">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><strong>3. 정렬</strong></label>
+                <div style="display: flex; gap: 20px; margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportSort" value="date" checked>
+                        <span>날짜순</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="exportSort" value="route">
+                        <span>노선순</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label><strong>4. 옵션</strong></label>
+                <div style="margin-top: 8px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 5px;">
+                        <input type="checkbox" id="optPageTotal" checked>
+                        <span>페이지 합계 표시</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 5px;">
+                        <input type="checkbox" id="optCumulativeTotal" checked>
+                        <span>누적 합계 표시</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="optSignature" checked>
+                        <span>서명란 포함</span>
+                    </label>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn-primary" style="flex: 1;" onclick="generateLogbook()">📄 출력</button>
+                <button class="btn-secondary" style="flex: 1;" onclick="closeExportModal()">취소</button>
+            </div>
         </div>
     </div>
 
@@ -2364,6 +2490,571 @@
                 alert('PDF 내보내기 실패: ' + error.message);
             }
         };
+        
+        // ========================================
+        // ✅ 로그북 출력 기능
+        // ========================================
+        
+        window.showExportModal = function() {
+            // ✅ 전역 flights 변수 사용 (이미 메모리에 로드되어 있음)
+            if (!flights || flights.length === 0) {
+                alert('출력할 비행 기록이 없습니다.');
+                return;
+            }
+            
+            const years = [...new Set(flights.map(f => new Date(f.date).getFullYear()))].sort((a, b) => b - a);
+            const yearSelect = document.getElementById('exportYear');
+            const monthYearSelect = document.getElementById('exportMonthYear');
+            
+            yearSelect.innerHTML = years.map(y => `<option value="${y}">${y}년</option>`).join('');
+            monthYearSelect.innerHTML = years.map(y => `<option value="${y}">${y}년</option>`).join('');
+            
+            document.getElementById('exportModal').classList.add('show');
+        };
+        
+        window.closeExportModal = function() {
+            document.getElementById('exportModal').classList.remove('show');
+        };
+        
+        window.toggleRangeInputs = function() {
+            const range = document.querySelector('input[name="exportRange"]:checked').value;
+            document.getElementById('rangeInputYear').style.display = range === 'year' ? 'block' : 'none';
+            document.getElementById('rangeInputMonth').style.display = range === 'month' ? 'block' : 'none';
+            document.getElementById('rangeInputCustom').style.display = range === 'custom' ? 'block' : 'none';
+        };
+        
+        window.generateLogbook = async function() {
+            const format = document.querySelector('input[name="exportFormat"]:checked').value;
+            const range = document.querySelector('input[name="exportRange"]:checked').value;
+            const sort = document.querySelector('input[name="exportSort"]:checked').value;
+            
+            const options = {
+                pageTotal: document.getElementById('optPageTotal').checked,
+                cumulativeTotal: document.getElementById('optCumulativeTotal').checked,
+                signature: document.getElementById('optSignature').checked
+            };
+            
+            // ✅ 전역 flights 변수 사용
+            if (!flights || flights.length === 0) {
+                alert('출력할 비행 기록이 없습니다.');
+                return;
+            }
+            
+            console.log('📊 로그북 출력:', {
+                '총 비행 수': flights.length,
+                '첫 번째 비행': flights[0]
+            });
+            
+            // ✅ 원본 인덱스 추가 (입력 순서 보존용)
+            const flightsWithIndex = flights.map((f, idx) => ({ ...f, _originalIndex: idx }));
+            let filtered = [...flightsWithIndex];
+            
+            if (range === 'year') {
+                const year = parseInt(document.getElementById('exportYear').value);
+                filtered = filtered.filter(f => new Date(f.date).getFullYear() === year);
+            } else if (range === 'month') {
+                const year = parseInt(document.getElementById('exportMonthYear').value);
+                const month = parseInt(document.getElementById('exportMonth').value);
+                filtered = filtered.filter(f => {
+                    const d = new Date(f.date);
+                    return d.getFullYear() === year && d.getMonth() + 1 === month;
+                });
+            } else if (range === 'custom') {
+                const start = document.getElementById('exportStartDate').value;
+                const end = document.getElementById('exportEndDate').value;
+                if (start && end) {
+                    filtered = filtered.filter(f => f.date >= start && f.date <= end);
+                }
+            }
+            
+            // ✅ 정렬: 날짜순 → 같은 날짜면 입력순
+            if (sort === 'date') {
+                filtered.sort((a, b) => {
+                    const dateCompare = new Date(a.date) - new Date(b.date);
+                    if (dateCompare !== 0) return dateCompare;
+                    // 날짜가 같으면 입력 순서 유지
+                    return a._originalIndex - b._originalIndex;
+                });
+            } else if (sort === 'route') {
+                filtered.sort((a, b) => {
+                    const routeCompare = `${a.from}-${a.to}`.localeCompare(`${b.from}-${b.to}`);
+                    if (routeCompare !== 0) return routeCompare;
+                    // 노선이 같으면 입력 순서 유지
+                    return a._originalIndex - b._originalIndex;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                alert('선택한 범위에 비행 기록이 없습니다.');
+                return;
+            }
+            
+            // 디버깅: 첫 번째 비행 데이터 확인
+            console.log('📊 필터링 후 첫 번째 비행:', filtered[0]);
+            console.log('📊 필터링 후 총 비행 수:', filtered.length);
+            console.log('📊 데이터 구조:', {
+                blockTime: filtered[0]?.blockTime,
+                pic: filtered[0]?.pic,
+                coPilot: filtered[0]?.coPilot,
+                picSupv: filtered[0]?.picSupv,
+                night: filtered[0]?.night,
+                instTime: filtered[0]?.instTime
+            });
+            console.log('📊 전체 필드:', Object.keys(filtered[0] || {}));
+            
+            if (format === 'pdf') {
+                if (confirm('⚠️ PDF는 한글이 깨질 수 있습니다.\n\n한글이 포함된 경우 Excel을 추천합니다.\n\n계속하시겠습니까?')) {
+                    await generateLogbookPDF(filtered, options);
+                }
+            } else {
+                await generateLogbookExcel(filtered, options);
+            }
+            
+            closeExportModal();
+        };
+        
+        async function generateLogbookPDF(flightData, options) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'a4');
+            
+            // ✅ 출력 범위 이전 데이터의 누적 합계 계산
+            let initialPrevTotal = { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 };
+            
+            if (flightData.length > 0) {
+                const firstDate = new Date(flightData[0].date);
+                const prevFlights = flights.filter(f => new Date(f.date) < firstDate);
+                
+                initialPrevTotal = prevFlights.reduce((acc, f) => {
+                    acc.pic += f.pic || 0;
+                    acc.coPilot += f.coPilot || 0;
+                    acc.picSupv += f.picSupv || 0;
+                    acc.block += f.blockTime || 0;
+                    acc.night += f.night || 0;
+                    acc.inst += f.instTime || 0;
+                    return acc;
+                }, { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 });
+                
+                console.log('📊 출력 범위 이전 누적:', {
+                    '이전 비행 수': prevFlights.length,
+                    '누적 합계': initialPrevTotal
+                });
+            }
+            
+            const pages = [];
+            let currentPage = [];
+            let currentYear = null;
+            let cumulativeTotal = { ...initialPrevTotal };  // 초기값 설정
+            
+            for (const flight of flightData) {
+                const year = new Date(flight.date).getFullYear();
+                
+                if (currentYear !== null && year !== currentYear && currentPage.length > 0) {
+                    pages.push({ flights: currentPage, year: currentYear });
+                    currentPage = [];
+                }
+                
+                currentPage.push(flight);
+                currentYear = year;
+                
+                if (currentPage.length === 15) {
+                    pages.push({ flights: currentPage, year: currentYear });
+                    currentPage = [];
+                }
+            }
+            
+            if (currentPage.length > 0) {
+                pages.push({ flights: currentPage, year: currentYear });
+            }
+            
+            for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+                const pageData = pages[pageIdx];
+                
+                if (pageIdx > 0) doc.addPage();
+                
+                const pageTotal = pageData.flights.reduce((acc, f) => {
+                    acc.pic += f.pic || 0;
+                    acc.coPilot += f.coPilot || 0;
+                    acc.picSupv += f.picSupv || 0;
+                    acc.block += f.blockTime || 0;
+                    acc.night += f.night || 0;
+                    acc.inst += f.instTime || 0;
+                    return acc;
+                }, { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 });
+                
+                const prevCumulative = { ...cumulativeTotal };
+                cumulativeTotal.pic += pageTotal.pic;
+                cumulativeTotal.coPilot += pageTotal.coPilot;
+                cumulativeTotal.picSupv += pageTotal.picSupv;
+                cumulativeTotal.block += pageTotal.block;
+                cumulativeTotal.night += pageTotal.night;
+                cumulativeTotal.inst += pageTotal.inst;
+                
+                renderPDFPage(doc, pageData, pageIdx + 1, pages.length, pageTotal, cumulativeTotal, prevCumulative, options);
+            }
+            
+            doc.save(`Logbook_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+        
+        function renderPDFPage(doc, pageData, pageNum, totalPages, pageTotal, cumTotal, prevCumTotal, options) {
+            const margin = 10;
+            const pageWidth = 297;
+            
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text('EASTAR JET', pageWidth - margin, margin + 5, { align: 'right' });
+            
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, margin + 10, { align: 'right' });
+            
+            doc.setFontSize(12);
+            doc.text(`Year: ${pageData.year}`, margin, margin + 10);
+            
+            if (pageNum > 1 && options.cumulativeTotal) {
+                doc.setFontSize(8);
+                doc.text(`Prev Total: PIC ${toDisplay(prevCumTotal.pic)} | CO-P ${toDisplay(prevCumTotal.coPilot)} | SUPV ${toDisplay(prevCumTotal.picSupv)} | Block ${toDisplay(prevCumTotal.block)} | Night ${toDisplay(prevCumTotal.night)} | Inst ${toDisplay(prevCumTotal.inst)}`, 
+                    margin, margin + 15);
+            } else if (pageNum === 1 && options.cumulativeTotal && (prevCumTotal.pic > 0 || prevCumTotal.block > 0)) {
+                // Page 1에서도 이전 데이터가 있으면 표시
+                doc.setFontSize(8);
+                doc.text(`Prev Total: PIC ${toDisplay(prevCumTotal.pic)} | CO-P ${toDisplay(prevCumTotal.coPilot)} | SUPV ${toDisplay(prevCumTotal.picSupv)} | Block ${toDisplay(prevCumTotal.block)} | Night ${toDisplay(prevCumTotal.night)} | Inst ${toDisplay(prevCumTotal.inst)}`, 
+                    margin, margin + 15);
+            }
+            
+            const tableData = pageData.flights.map(f => [
+                `${pad(new Date(f.date).getMonth() + 1)}/${pad(new Date(f.date).getDate())}`,
+                f.aircraft || '',
+                f.acIdent || '',
+                f.fltNo || '',
+                `${f.from}-${f.to}`,
+                toDisplay(f.pic || 0),
+                toDisplay(f.picSupv || 0),
+                toDisplay(f.coPilot || 0),
+                '',
+                '',
+                toDisplay(f.blockTime || 0),
+                toDisplay(f.night || 0),
+                toDisplay(f.instTime || 0),
+                f.appType || '',
+                `D:${f.toDay || 0}/${f.ldDay || 0} N:${f.toNight || 0}/${f.ldNight || 0}`,
+                f.remark || ''
+            ]);
+            
+            while (tableData.length < 15) {
+                tableData.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+            }
+            
+            // ✅ 합계 행 추가 (각 컬럼 아래에 표시)
+            if (options.pageTotal) {
+                tableData.push([
+                    'Page Totals:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(pageTotal.pic),
+                    toDisplay(pageTotal.picSupv),
+                    toDisplay(pageTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(pageTotal.block),
+                    toDisplay(pageTotal.night),
+                    toDisplay(pageTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
+            if (options.cumulativeTotal && hasPrevTotal) {
+                tableData.push([
+                    'Prev Total:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(prevCumTotal.pic),
+                    toDisplay(prevCumTotal.picSupv),
+                    toDisplay(prevCumTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(prevCumTotal.block),
+                    toDisplay(prevCumTotal.night),
+                    toDisplay(prevCumTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
+            if (options.cumulativeTotal) {
+                tableData.push([
+                    'Total to Date:',
+                    '',
+                    '',
+                    '',
+                    '',
+                    toDisplay(cumTotal.pic),
+                    toDisplay(cumTotal.picSupv),
+                    toDisplay(cumTotal.coPilot),
+                    '',
+                    '',
+                    toDisplay(cumTotal.block),
+                    toDisplay(cumTotal.night),
+                    toDisplay(cumTotal.inst),
+                    '',
+                    '',
+                    ''
+                ]);
+            }
+            
+            // Prev Total 표시 여부에 따라 테이블 시작 위치 조정
+            const hasPrevTotal = (pageNum > 1 || (prevCumTotal.pic > 0 || prevCumTotal.block > 0)) && options.cumulativeTotal;
+            
+            doc.autoTable({
+                startY: hasPrevTotal ? margin + 20 : margin + 18,
+                head: [[
+                    'DATE\n(MM/DD)',
+                    'AIRCRAFT\nTYPE',
+                    'A/C\nIdent',
+                    'FLIGHT\nNO',
+                    'ROUTE OF FLIGHT\n(FROM - TO)',
+                    'PIC',
+                    'UNDER\nSUPVN',
+                    'CO-\nPILOT',
+                    'IP',
+                    'ITR',
+                    'BLOCK',
+                    'NIGHT',
+                    'INST',
+                    'APP\nTYPE',
+                    'D/N',
+                    'REMARKS'
+                ]],
+                body: tableData,
+                theme: 'grid',
+                headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], lineWidth: 0.3, lineColor: [0, 0, 0], fontSize: 7, halign: 'center' },
+                bodyStyles: { fontSize: 8, cellPadding: 1.5, textColor: [0, 0, 0], lineWidth: 0.3, lineColor: [0, 0, 0] },
+                columnStyles: {
+                    0: { cellWidth: 15 }, 1: { cellWidth: 18 }, 2: { cellWidth: 15 }, 3: { cellWidth: 15 },
+                    4: { cellWidth: 30 }, 5: { cellWidth: 12 }, 6: { cellWidth: 12 }, 7: { cellWidth: 12 },
+                    8: { cellWidth: 10 }, 9: { cellWidth: 10 }, 10: { cellWidth: 15 }, 11: { cellWidth: 12 },
+                    12: { cellWidth: 12 }, 13: { cellWidth: 12 }, 14: { cellWidth: 15 }, 15: { cellWidth: 35 }
+                },
+                didParseCell: function(data) {
+                    // 합계 행 스타일링 (행 번호가 15 이상인 행들)
+                    if (data.row.index >= 15) {
+                        data.cell.styles.fontStyle = 'bold';
+                        data.cell.styles.fillColor = [240, 240, 240];
+                        data.cell.styles.fontSize = 8;
+                    }
+                },
+                margin: { left: margin, right: margin }
+            });
+            
+            // 서명란
+            if (options.signature) {
+                const finalY = doc.lastAutoTable.finalY + 5;
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'normal');
+                doc.text("PILOT'S SIGNATURE: _______________________", margin, finalY);
+            }
+        }
+        
+        async function generateLogbookExcel(flightData, options) {
+            const wb = XLSX.utils.book_new();
+            
+            // ✅ 출력 범위 이전 데이터의 누적 합계 계산
+            let initialPrevTotal = { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 };
+            
+            if (flightData.length > 0) {
+                const firstDate = new Date(flightData[0].date);
+                const prevFlights = flights.filter(f => new Date(f.date) < firstDate);
+                
+                initialPrevTotal = prevFlights.reduce((acc, f) => {
+                    acc.pic += f.pic || 0;
+                    acc.coPilot += f.coPilot || 0;
+                    acc.picSupv += f.picSupv || 0;
+                    acc.block += f.blockTime || 0;
+                    acc.night += f.night || 0;
+                    acc.inst += f.instTime || 0;
+                    return acc;
+                }, { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 });
+            }
+            
+            const pages = [];
+            let currentPage = [];
+            let currentYear = null;
+            
+            for (const flight of flightData) {
+                const year = new Date(flight.date).getFullYear();
+                
+                if (currentYear !== null && year !== currentYear && currentPage.length > 0) {
+                    pages.push({ flights: currentPage, year: currentYear });
+                    currentPage = [];
+                }
+                
+                currentPage.push(flight);
+                currentYear = year;
+                
+                if (currentPage.length === 15) {
+                    pages.push({ flights: currentPage, year: currentYear });
+                    currentPage = [];
+                }
+            }
+            
+            if (currentPage.length > 0) {
+                pages.push({ flights: currentPage, year: currentYear });
+            }
+            
+            let cumulativeTotal = { ...initialPrevTotal };  // 초기값 설정
+            
+            for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
+                const pageData = pages[pageIdx];
+                const ws_data = [];
+                
+                ws_data.push(['EASTAR JET', '', '', '', '', '', '', '', '', '', '', '', '', '', '', `Page ${pageIdx + 1} of ${pages.length}`]);
+                ws_data.push([`Year: ${pageData.year}`]);
+                ws_data.push([]);
+                
+                ws_data.push([
+                    'DATE (MM/DD)', 'AIRCRAFT TYPE', 'A/C Ident', 'FLIGHT NO', 'ROUTE OF FLIGHT',
+                    'PIC', 'UNDER SUPVN', 'CO-PILOT', 'IP', 'ITR',
+                    'BLOCK', 'NIGHT', 'INST', 'APP TYPE', 'D/N', 'REMARKS'
+                ]);
+                
+                const pageTotal = pageData.flights.reduce((acc, f) => {
+                    acc.pic += f.pic || 0;
+                    acc.coPilot += f.coPilot || 0;
+                    acc.picSupv += f.picSupv || 0;
+                    acc.block += f.blockTime || 0;
+                    acc.night += f.night || 0;
+                    acc.inst += f.instTime || 0;
+                    return acc;
+                }, { pic: 0, coPilot: 0, picSupv: 0, block: 0, night: 0, inst: 0 });
+                
+                const prevCumulative = { ...cumulativeTotal };
+                cumulativeTotal.pic += pageTotal.pic;
+                cumulativeTotal.coPilot += pageTotal.coPilot;
+                cumulativeTotal.picSupv += pageTotal.picSupv;
+                cumulativeTotal.block += pageTotal.block;
+                cumulativeTotal.night += pageTotal.night;
+                cumulativeTotal.inst += pageTotal.inst;
+                
+                pageData.flights.forEach(f => {
+                    ws_data.push([
+                        `${pad(new Date(f.date).getMonth() + 1)}/${pad(new Date(f.date).getDate())}`,
+                        f.aircraft || '',
+                        f.acIdent || '',
+                        f.fltNo || '',
+                        `${f.from}-${f.to}`,
+                        toDisplay(f.pic || 0),
+                        toDisplay(f.picSupv || 0),
+                        toDisplay(f.coPilot || 0),
+                        '',
+                        '',
+                        toDisplay(f.blockTime || 0),
+                        toDisplay(f.night || 0),
+                        toDisplay(f.instTime || 0),
+                        f.appType || '',
+                        `D:${f.toDay || 0}/${f.ldDay || 0} N:${f.toNight || 0}/${f.ldNight || 0}`,
+                        f.remark || ''
+                    ]);
+                });
+                
+                while (ws_data.length - 4 < 15) {
+                    ws_data.push(['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']);
+                }
+                
+                // ✅ 합계 행 추가 (각 컬럼 아래에 표시)
+                if (options.pageTotal) {
+                    ws_data.push([
+                        'Page Totals:',
+                        '',
+                        '',
+                        '',
+                        '',
+                        toDisplay(pageTotal.pic),
+                        toDisplay(pageTotal.picSupv),
+                        toDisplay(pageTotal.coPilot),
+                        '',
+                        '',
+                        toDisplay(pageTotal.block),
+                        toDisplay(pageTotal.night),
+                        toDisplay(pageTotal.inst),
+                        '',
+                        '',
+                        ''
+                    ]);
+                }
+                
+                if (options.cumulativeTotal) {
+                    // Prev Total: Page 1에서도 이전 데이터가 있으면 표시, Page 2부터는 항상 표시
+                    if (pageIdx > 0 || (prevCumulative.pic > 0 || prevCumulative.block > 0)) {
+                        ws_data.push([
+                            'Prev Total:',
+                            '',
+                            '',
+                            '',
+                            '',
+                            toDisplay(prevCumulative.pic),
+                            toDisplay(prevCumulative.picSupv),
+                            toDisplay(prevCumulative.coPilot),
+                            '',
+                            '',
+                            toDisplay(prevCumulative.block),
+                            toDisplay(prevCumulative.night),
+                            toDisplay(prevCumulative.inst),
+                            '',
+                            '',
+                            ''
+                        ]);
+                    }
+                    ws_data.push([
+                        'Total to Date:',
+                        '',
+                        '',
+                        '',
+                        '',
+                        toDisplay(cumulativeTotal.pic),
+                        toDisplay(cumulativeTotal.picSupv),
+                        toDisplay(cumulativeTotal.coPilot),
+                        '',
+                        '',
+                        toDisplay(cumulativeTotal.block),
+                        toDisplay(cumulativeTotal.night),
+                        toDisplay(cumulativeTotal.inst),
+                        '',
+                        '',
+                        ''
+                    ]);
+                }
+                
+                if (options.signature) {
+                    ws_data.push([]);
+                    ws_data.push(["PILOT'S SIGNATURE: _______________________"]);
+                }
+                
+                const ws = XLSX.utils.aoa_to_sheet(ws_data);
+                XLSX.utils.book_append_sheet(wb, ws, `Page ${pageIdx + 1}`);
+            }
+            
+            XLSX.writeFile(wb, `Logbook_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+        
+        // ✅ 헬퍼 함수 (더 이상 사용되지 않지만 호환성을 위해 유지)
+        function calcBlockMinutes(f) {
+            // 실제로는 blockTime이 이미 분 단위로 저장됨
+            return f.blockTime || 0;
+        }
+        
+        function minutesToTime(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = Math.round(minutes % 60);
+            return `${h}:${pad(m)}`;
+        }
+        
+        // ========================================
         
         // ✅ PDF 내보내기
         window.exportAirportNoteToPDF = async function(icao) {
